@@ -1,0 +1,62 @@
+name: ChuckNorrisFacts
+options:
+  bundleIdPrefix: evandro
+  deploymentTarget: 
+    iOS: "14.2"
+  preGenCommand: killall Xcode || true
+  postGenCommand: open ChuckNorrisFacts.xcodeproj -a Xcode && xcodegen dump --type graphviz --file Graph.dot 
+  groupOrdering: 
+    - order: [ExperimentTCA1]
+packages:
+  TCA:
+    url: https://github.com/pointfreeco/swift-composable-architecture
+    from: 0.11.0
+targets:
+  ChuckNorrisFactsApp:
+    type: application
+    platform: iOS
+    info: 
+      path: ChuckNorrisFactsApp/Info.plist
+    sources: [ChuckNorrisFactsApp]
+    dependencies:
+      - target: ChuckNorrisFactsCommon
+      - target: FactsModule
+  ChuckNorrisFactsCommon:
+    type: framework
+    platform: iOS
+    info: 
+      path: ChuckNorrisFactsCommon/Info.plist
+    sources: [ChuckNorrisFactsCommon]
+    scheme:
+      buildImplicitDependencies: false
+    dependencies:
+      - package: TCA
+        product: ComposableArchitecture
+  FactsModule:
+    type: framework
+    platform: iOS
+    info: 
+      path: FactsModule/Info.plist
+    sources: [FactsModule]
+    dependencies:
+      - target: SearchModule
+      - target: ChuckNorrisFactsCommon
+  SearchModule:
+    type: framework
+    platform: iOS
+    info: 
+      path: SearchModule/Info.plist
+    sources: [SearchModule]
+    dependencies:
+      - target: ChuckNorrisFactsCommon
+    scheme:
+      testTargets:
+      - SearchModuleTests
+  SearchModuleTests:
+    type: bundle.unit-test
+    platform: iOS
+    info: 
+      path: SearchModuleTests/Info.plist
+    sources: [SearchModuleTests]
+    dependencies:
+      - target: ChuckNorrisFactsCommon
