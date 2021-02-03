@@ -12,7 +12,9 @@ public struct FactsView: View {
             VStack(alignment: .leading) {
               ScrollView {
                 LazyVStack(pinnedViews: .sectionHeaders) {
-                  
+                  ForEachStore(
+                    self.store.scope(state: { $0.facts }, action: FactsAction.fact(id:action:)),
+                    content: FactCellView.init(store:))
                 }
               }
             }
