@@ -1,6 +1,7 @@
 import SwiftUI
 import ComposableArchitecture
 import SearchModule
+import ChuckNorrisFactsCommon
 
 public struct ItemView: View {
   @State public var text: String
@@ -34,6 +35,13 @@ public struct FactCellView: View {
                    maxHeight: .infinity,
                    alignment: .topLeading
             )
+          HStack {
+            WrapHStack(items: viewStore.categories.withIndex()) { (index, value) in
+              ItemView(text: value.capitalized)
+            }
+            Spacer()
+          }
+          .padding(.bottom, 4)
         }
         .padding(.horizontal, 10)
         .background(Color(UIColor.secondarySystemGroupedBackground))
