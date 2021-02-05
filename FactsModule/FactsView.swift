@@ -30,6 +30,13 @@ public struct FactsView: View {
         )
         .navigationTitle("Chuck Norris Facts")
       }
+      .sheet(isPresented: viewStore.binding(get: { $0.searchViewShown }, send: .dismissSearchView)) {
+        SearchView(store:
+                    self.store.scope(
+                      state: { $0.search },
+                      action: FactsAction.search)
+        )
+      }
     }
   }
   
