@@ -13,8 +13,8 @@ struct ChuckNorrisFactsApp: App {
           reducer: factsReducer,
           environment: FactsEnvironment(
             mainQueue: DispatchQueue.main.eraseToAnyScheduler(),
-            chuckNorrisClient: .mock(search: { _ in .none }, random: { _ in .none }),
-            userDefaultsClient: .mock(load: { _ in .none }, save: { _, _ in .none })
+            chuckNorrisClient: .live,
+            userDefaultsClient: .live
           )
         )
       )
