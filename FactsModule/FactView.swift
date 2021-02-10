@@ -40,6 +40,11 @@ public struct FactCellView: View {
               ItemView(text: value.capitalized)
             }
             Spacer()
+            Button(action: {
+              viewStore.send(.shareLinkButtonTapped)
+            }) {
+              Image(systemName: "square.and.arrow.up")
+            }
           }
           .padding(.bottom, 4)
         }
@@ -50,6 +55,23 @@ public struct FactCellView: View {
       }
       .padding(.vertical, 5)
       .padding(.horizontal, 15)
+      .sheet(isPresented: viewStore.binding(get: { $0.showSheet }, send: .dismissSheet)) {
+        ActivityViewController(activityItems: [URL(string: viewStore.fact.url)!])
+      }
     }
   }
+}
+
+struct ActivityViewController: UIViewControllerRepresentable {
+  
+  var activityItems: [Any]
+  var applicationActivities: [UIActivity]? = nil
+  
+  func makeUIViewController(context: UIViewControllerRepresentableContext<ActivityViewController>) -> UIActivityViewController {
+    let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+    return controller
+  }
+  
+  func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
+  
 }

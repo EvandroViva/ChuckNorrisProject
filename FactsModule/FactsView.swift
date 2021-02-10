@@ -9,6 +9,13 @@ public struct FactsView: View {
     WithViewStore(self.store) { viewStore in
       NavigationView {
         ZStack {
+          if viewStore.facts.isEmpty {
+            Text("Tap on the button in the upper right corner with 🔍 icon to search")
+              .font(.subheadline)
+              .foregroundColor(Color(.systemGray))
+              .multilineTextAlignment(.center)
+              .padding(.horizontal, 80)
+          } else {
             VStack(alignment: .leading) {
               ScrollView {
                 LazyVStack(pinnedViews: .sectionHeaders) {
@@ -18,6 +25,7 @@ public struct FactsView: View {
                 }
               }
             }
+          }
         }
         .navigationBarItems(
           trailing:
