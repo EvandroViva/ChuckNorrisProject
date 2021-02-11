@@ -6,6 +6,7 @@ public struct FactsState: Equatable {
   var facts: IdentifiedArrayOf<FactState> = []
   var search = SearchState()
   var searchViewShown = false
+  var isLoading = false
   
   public init(facts: IdentifiedArrayOf<FactState> = [], search: SearchState = SearchState(), searchViewControllerShown: Bool = false) {
     self.facts = facts
@@ -15,6 +16,7 @@ public struct FactsState: Equatable {
 }
 
 public enum FactsAction: Equatable {
+  case onAppear
   case searchButtonTapped
   case dismissSearchView
   case search(SearchAction)
@@ -49,9 +51,12 @@ public let factsReducer =
       action: /FactsAction.fact(id:action:),
       environment: { _ in FactEnvironment() }
     ),
-    Reducer<FactsState, FactsAction, FactsEnvironment> { state, action, enviroment in
+    Reducer<FactsState, FactsAction, FactsEnvironment> { state, action, environment in
 
       switch action {
+        case .onAppear:
+          return Effect(value: FactsAction.search(SearchAction.loadCategories))
+            .eraseToEffect()
         case .searchButtonTapped:
           state.searchViewShown = true
           return .none
@@ -60,9 +65,17 @@ public let factsReducer =
           return .none
         case let .search(searchAction):
           switch searchAction {
-            case let .chuckNorrisFactsResponse(_, .success(facts)):
-              state.facts = IdentifiedArrayOf.init(facts.map(FactState.init))
+            case .keyboardEnterButtonTapped, .suggestionButtonTapped(_), .pastSearchButtonTapped(_):
+              state.isLoading = true
               state.searchViewShown = false
+              return .none
+            case let .chuckNorrisFactsResponse(_, .success(facts)):
+              state.isLoading = false
+              state.facts = IdentifiedArrayOf.init(facts.map(FactState.init))
+              return .none
+            case let .chuckNorrisFactsResponse(_, .failure(error)):
+              state.isLoading = false
+              state.searchViewShown = true
               return .none
             default:
               return .none

@@ -117,6 +117,9 @@ public struct SearchView: View {
       .onAppear {
         viewStore.send(.loadSearchedTerms)
       }
+      .alert(isPresented: viewStore.binding(get: { $0.showingAlert }, send: SearchAction.alertDismissed)) {
+        Alert(title: Text("Most likely Chuck Norris turned off all internet..."), message: Text("Try again. If you are worthy..."), dismissButton: .default(Text("Ok!")))
+      }
     }
     .navigationBarTitle("")
     .navigationBarHidden(true)

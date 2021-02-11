@@ -9,7 +9,9 @@ public struct FactsView: View {
     WithViewStore(self.store) { viewStore in
       NavigationView {
         ZStack {
-          if viewStore.facts.isEmpty {
+          if viewStore.isLoading {
+            ProgressView()
+          } else if viewStore.facts.isEmpty {
             Text("Tap on the button in the upper right corner with 🔍 icon to search")
               .font(.subheadline)
               .foregroundColor(Color(.systemGray))
@@ -32,9 +34,9 @@ public struct FactsView: View {
             Button(action: { viewStore.send(.searchButtonTapped) }) {
               Image(systemName: "magnifyingglass")
                 .foregroundColor(.blue)
-                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 8)
+                .frame(minWidth: 40, maxWidth: .infinity, alignment: .leading)
             }
+          
         )
         .navigationTitle("Chuck Norris Facts")
       }
@@ -44,6 +46,9 @@ public struct FactsView: View {
                       state: { $0.search },
                       action: FactsAction.search)
         )
+      }
+      .onAppear {
+        viewStore.send(.onAppear)
       }
     }
   }

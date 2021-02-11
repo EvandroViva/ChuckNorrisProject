@@ -5,19 +5,24 @@ public struct SearchState: Equatable {
   var searchTerm = ""
   var suggestions: [String] = ["games", "sports", "dev", "science", "technology", "music", "travel", "carrer"]
   var pastSearches: [String] = []
+  var showingAlert = false
   
   public init() { }
 }
 
 public enum SearchAction: Equatable {
+  case loadCategories
   case loadSearchedTerms
   case searchTermChanged(String)
   case keyboardEnterButtonTapped
   case suggestionButtonTapped(Int)
   case pastSearchButtonTapped(Int)
+  case alertDismissed
   
   case loadedSearchedTermsResponse(Result<[String], Never>)
+  case loadedCategoriesResponse(Result<[String], Never>)
   case chuckNorrisFactsResponse(source: SourceAction, Result<[Fact], ChuckNorrisClient.Failure>)
+  case chuckNorrisCategoriesResponse(Result<[String], ChuckNorrisClient.Failure>)
   
   public enum SourceAction {
     case search
@@ -40,6 +45,13 @@ public struct SearchEnvironment {
 
 public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment> { (state, action, environment) -> Effect<SearchAction, Never> in
   switch action {
+    case .loadCategories:
+      return environment.userDefaultsClient
+        .load(categoriesListKeyname)
+        .receive(on: environment.mainQueue)
+        .catchToEffect()
+        .map(SearchAction.loadedCategoriesResponse)
+      
     case .loadSearchedTerms:
       return environment.userDefaultsClient
         .load(savedSearchedTermsListKeyname)
@@ -79,6 +91,9 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
         .catchToEffect()
         .map { (.pastSearch, $0) }
         .map(SearchAction.chuckNorrisFactsResponse)
+    
+    case .alertDismissed:
+      return .none
       
     case let .chuckNorrisFactsResponse(source, .success(facts)):
       switch source {
@@ -99,9 +114,31 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
       state.pastSearches = terms
       return .none
       
+    case let .loadedCategoriesResponse(.success(categories)):
+      if categories.isEmpty {
+        return environment.chuckNorrisClient
+          .categories()
+          .receive(on: environment.mainQueue)
+          .catchToEffect()
+          .map(SearchAction.chuckNorrisCategoriesResponse)
+      }
+      return Effect(value: SearchAction.chuckNorrisCategoriesResponse(.success(categories)))
+        .eraseToEffect()
+      
     case .chuckNorrisFactsResponse(_, .failure(_)):
+      state.showingAlert = true
+      return .none
+      
+    case let .chuckNorrisCategoriesResponse(.success(categories)):
+      state.suggestions = categories.shuffled().suffix(8).sorted()
+      return environment.userDefaultsClient
+        .save(categoriesListKeyname, categories)
+        .fireAndForget()
+      
+    case .chuckNorrisCategoriesResponse(.failure(_)):
       return .none
   }
 }
 
 private let savedSearchedTermsListKeyname = "savedSearchedTermsList"
+private let categoriesListKeyname = "categoriesList"

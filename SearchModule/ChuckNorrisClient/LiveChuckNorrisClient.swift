@@ -56,6 +56,16 @@ extension ChuckNorrisClient {
         .decode(type: Fact.self, decoder: jsonDecoder)
         .mapError { _ in Failure.invalidResponse }
         .eraseToEffect()
+    },
+    categories: {
+      var components = URLComponents(string: "https://api.chucknorris.io/jokes/categories")!
+      
+      return URLSession.shared.dataTaskPublisher(for: components.url!)
+        .map { data, _ in data }
+        .decode(type: [String].self, decoder: jsonDecoder)
+        .mapError { _ in Failure.invalidResponse }
+        .eraseToEffect()
+      
     }
   )
 }
