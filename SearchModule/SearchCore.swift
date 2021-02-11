@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Combine
 
 public struct SearchState: Equatable {
   var isPresented = true
@@ -6,22 +7,34 @@ public struct SearchState: Equatable {
   var suggestions: [String] = ["games", "sports", "dev", "science", "technology", "music", "travel", "carrer"]
   var pastSearches: [String] = []
   var showingAlert = false
+  var localData = LocalData.empty
   
   public init() { }
+  
+  public struct LocalData: Codable, Equatable {
+    public var terms: [String: [String]]
+    public var facts: [String: Fact]
+    
+    static var empty = LocalData(terms: [:], facts: [:])
+  }
 }
 
 public enum SearchAction: Equatable {
   case loadCategories
   case loadSearchedTerms
+  case loadLocalData
   case searchTermChanged(String)
   case keyboardEnterButtonTapped
   case suggestionButtonTapped(Int)
   case pastSearchButtonTapped(Int)
+  case searchTerm(SourceAction, String)
   case alertDismissed
   
   case loadedSearchedTermsResponse(Result<[String], Never>)
   case loadedCategoriesResponse(Result<[String], Never>)
-  case chuckNorrisFactsResponse(source: SourceAction, Result<[Fact], ChuckNorrisClient.Failure>)
+  case loadedLocalData(Result<SearchState.LocalData?, Never>)
+  case chuckNorrisFactsResponse(SourceAction, Result<[Fact], ChuckNorrisClient.Failure>)
+  case saveFactsAndResponse(SourceAction, String, Result<[Fact], ChuckNorrisClient.Failure>)
   case chuckNorrisCategoriesResponse(Result<[String], ChuckNorrisClient.Failure>)
   
   public enum SourceAction {
@@ -58,57 +71,48 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
         .receive(on: environment.mainQueue)
         .catchToEffect()
         .map(SearchAction.loadedSearchedTermsResponse)
+    
+    case .loadLocalData:
+      return environment.userDefaultsClient
+        .loadData(localDataKeyname)
+        .map({ (data) -> SearchState.LocalData? in
+          guard let data = data else { return nil }
+          return try? JSONDecoder().decode(SearchState.LocalData.self, from: data)
+        })
+        .receive(on: environment.mainQueue)
+        .catchToEffect()
+        .map(SearchAction.loadedLocalData)
       
     case let .searchTermChanged(value):
       state.searchTerm = value
       return .none
       
     case .keyboardEnterButtonTapped:
-      return environment.chuckNorrisClient
-        .search(state.searchTerm)
-        .receive(on: environment.mainQueue)
-        .catchToEffect()
-        .map { (.search, $0) }
-        .map(SearchAction.chuckNorrisFactsResponse)
+      return Effect(value: SearchAction.searchTerm(.search, state.searchTerm))
       
     case let .suggestionButtonTapped(index):
-      // TODO: What to do if the index is out of range?
       let category = state.suggestions[index]
-      return environment.chuckNorrisClient
-        .search(category)
-        .receive(on: environment.mainQueue)
-        .catchToEffect()
-        .map { (.suggestion, $0) }
-        .map(SearchAction.chuckNorrisFactsResponse)
+      return Effect(value: SearchAction.searchTerm(.suggestion, category))
       
     case let .pastSearchButtonTapped(index):
-      // TODO: What to do if the index is out of range?
       let term = state.pastSearches[index]
+      return Effect(value: SearchAction.searchTerm(.pastSearch, term))
       
+    case let .searchTerm(source, term):
+      if let list = state.localData.terms[term] {
+        let facts = list.compactMap { state.localData.facts[$0] }
+        return Effect(value: SearchAction.chuckNorrisFactsResponse(source, .success(facts)))
+      }
       return environment.chuckNorrisClient
         .search(term)
         .receive(on: environment.mainQueue)
         .catchToEffect()
-        .map { (.pastSearch, $0) }
-        .map(SearchAction.chuckNorrisFactsResponse)
+        .map { (source, term, $0) }
+        .map(SearchAction.saveFactsAndResponse)
     
     case .alertDismissed:
+      state.showingAlert = false
       return .none
-      
-    case let .chuckNorrisFactsResponse(source, .success(facts)):
-      switch source {
-        case .search:
-          state.pastSearches.append(state.searchTerm)
-          state.searchTerm = ""
-        case .suggestion:
-          break
-        case .pastSearch:
-          break
-      }
-      state.isPresented = false
-      return environment.userDefaultsClient
-        .save(savedSearchedTermsListKeyname, state.pastSearches)
-        .fireAndForget()
       
     case let .loadedSearchedTermsResponse(.success(terms)):
       state.pastSearches = terms
@@ -124,6 +128,39 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
       }
       return Effect(value: SearchAction.chuckNorrisCategoriesResponse(.success(categories)))
         .eraseToEffect()
+      
+    case let .loadedLocalData(.success(localData)):
+      state.localData = localData ?? state.localData
+      return .none
+      
+    case let .saveFactsAndResponse(source, term, .success(facts)):
+      state.localData.terms[term.lowercased()] = facts.map { $0.id }
+      facts.forEach { state.localData.facts[$0.id] = $0 }
+      let data = try! JSONEncoder().encode(state.localData)
+      return .concatenate(
+        environment.userDefaultsClient
+          .saveData(localDataKeyname, data)
+          .fireAndForget(),
+        Effect(value: SearchAction.chuckNorrisFactsResponse(source, .success(facts)))
+      )
+      
+    case let .saveFactsAndResponse(source, term, .failure(error)):
+      return Effect(value: SearchAction.chuckNorrisFactsResponse(source, .failure(error)))
+      
+    case let .chuckNorrisFactsResponse(source, .success(facts)):
+      switch source {
+        case .search:
+          state.pastSearches.append(state.searchTerm)
+          state.searchTerm = ""
+        case .suggestion:
+          break
+        case .pastSearch:
+          break
+      }
+      state.isPresented = false
+      return environment.userDefaultsClient
+        .save(savedSearchedTermsListKeyname, state.pastSearches)
+        .fireAndForget()
       
     case .chuckNorrisFactsResponse(_, .failure(_)):
       state.showingAlert = true
@@ -142,3 +179,4 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
 
 private let savedSearchedTermsListKeyname = "savedSearchedTermsList"
 private let categoriesListKeyname = "categoriesList"
+private let localDataKeyname = "localData"

@@ -2,7 +2,7 @@ import ComposableArchitecture
 
 // MARK: - API models
 
-public struct Fact: Decodable, Equatable {
+public struct Fact: Codable, Equatable {
   public var icon_url: String
   public var id: String
   public var url: String

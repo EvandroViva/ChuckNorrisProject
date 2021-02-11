@@ -13,5 +13,16 @@ extension UserDefaultsClient {
       .fireAndForget {
         UserDefaults.standard.set(data, forKey: key)
       }
+    },
+    loadData: { key in
+      return .result { () -> Result<Data?, Never> in
+        let data = UserDefaults.standard.data(forKey: key)
+        return .success(data)
+      }
+    },
+    saveData: { key, data in
+      .fireAndForget {
+        UserDefaults.standard.setValue(data, forKey: key)
+      }
     })
 }

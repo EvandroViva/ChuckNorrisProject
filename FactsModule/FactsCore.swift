@@ -55,8 +55,10 @@ public let factsReducer =
 
       switch action {
         case .onAppear:
-          return Effect(value: FactsAction.search(SearchAction.loadCategories))
-            .eraseToEffect()
+          return .concatenate(
+            Effect(value: FactsAction.search(SearchAction.loadCategories)),
+            Effect(value: FactsAction.search(SearchAction.loadLocalData))
+          )
         case .searchButtonTapped:
           state.searchViewShown = true
           return .none
@@ -76,6 +78,10 @@ public let factsReducer =
             case let .chuckNorrisFactsResponse(_, .failure(error)):
               state.isLoading = false
               state.searchViewShown = true
+              return .none
+            case let .loadedLocalData(.success(localData)):
+              guard let localData = localData else { return .none }
+              state.facts = IdentifiedArrayOf.init(localData.facts.map { $0.1 }.shuffled().prefix(10).map(FactState.init))
               return .none
             default:
               return .none

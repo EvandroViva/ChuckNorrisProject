@@ -21,6 +21,7 @@ targets:
     dependencies:
       - target: ChuckNorrisFactsCommon
       - target: FactsModule
+      - target: SearchModule
   ChuckNorrisFactsCommon:
     type: framework
     platform: iOS
