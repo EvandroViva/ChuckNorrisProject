@@ -95,7 +95,9 @@ extension Publishers {
       guard intervals.count > 0 else { return publisher.receive(subscriber: subscriber) }
       
       publisher
-        .delay(for: intervals.removeFirst(), scheduler: RunLoop.main)
+        .catch {
+          return Fail(error: $0).delay(for: intervals.removeFirst(), scheduler: RunLoop.main)
+        }
         .catch { (error: P.Failure) -> AnyPublisher<Output, Failure> in
           if condition(error)  {
             return RetryIf(publisher: publisher, intervals: intervals, condition: condition).eraseToAnyPublisher()
