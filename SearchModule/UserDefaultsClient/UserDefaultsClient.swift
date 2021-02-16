@@ -1,9 +1,9 @@
 import ComposableArchitecture
 
 public struct UserDefaultsClient {
-  var load: (String) -> Effect<[String], Never>
-  var save: (String, [String]) -> Effect<Never, Never>
-  var loadData: (String) -> Effect<Data?, Never>
-  var saveData: (String, Data) -> Effect<Never, Never>
+  public var load: (String) -> Effect<[String], Never>
+  public var save: (String, [String]) -> Effect<Never, Never>
+  public var loadData: (String) -> Effect<Data?, Never>
+  public var saveData: (String, Data) -> Effect<Never, Never>
   
 }

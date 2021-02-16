@@ -21,9 +21,9 @@ public struct Fact: Codable, Equatable {
 // MARK: - API client interface
 
 public struct ChuckNorrisClient {
-  var search: (String) -> Effect<[Fact], Failure>
-  var random: (String) -> Effect<Fact, Failure>
-  var categories: () -> Effect<[String], Failure>
+  public var search: (String) -> Effect<[Fact], Failure>
+  public var random: (String) -> Effect<Fact, Failure>
+  public var categories: () -> Effect<[String], Failure>
   
   public enum Failure: Error, Equatable {
     case invalidResponse, rateLimitted, serverBusy, casting, unknown

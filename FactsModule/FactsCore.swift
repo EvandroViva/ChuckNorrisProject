@@ -1,6 +1,7 @@
 import Combine
 import ComposableArchitecture
 import SearchModule
+import ChuckNorrisFactsCommon
 
 public struct FactsState: Equatable {
   var facts: IdentifiedArrayOf<FactState> = []
@@ -67,7 +68,7 @@ public let factsReducer =
           return .none
         case let .search(searchAction):
           switch searchAction {
-            case .keyboardEnterButtonTapped, .suggestionButtonTapped(_), .pastSearchButtonTapped(_):
+            case .searchTerm(_, _):
               state.isLoading = true
               state.searchViewShown = false
               return .none
@@ -81,7 +82,9 @@ public let factsReducer =
               return .none
             case let .loadedLocalData(.success(localData)):
               guard let localData = localData else { return .none }
-              state.facts = IdentifiedArrayOf.init(localData.facts.map { $0.1 }.shuffled().prefix(10).map(FactState.init))
+              let facts = localData.facts.map { $0.1 }
+              var generator = SeededGenerator(seed: UInt64(Date().timeIntervalSince1970))
+              state.facts = IdentifiedArrayOf.init(facts.sorted { $0.id < $1.id }.shuffled(using: &generator).prefix(10).map(FactState.init))
               return .none
             default:
               return .none

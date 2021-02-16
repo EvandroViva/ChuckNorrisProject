@@ -1,13 +1,14 @@
 import ComposableArchitecture
 import Combine
+import ChuckNorrisFactsCommon
 
 public struct SearchState: Equatable {
-  var isPresented = true
-  var searchTerm = ""
-  var suggestions: [String] = ["games", "sports", "dev", "science", "technology", "music", "travel", "carrer"]
-  var pastSearches: [String] = []
-  var showingAlert = false
-  var localData = LocalData.empty
+  public var isPresented = true
+  public var searchTerm = ""
+  public var suggestions: [String] = []
+  public var pastSearches: [String] = []
+  public var showingAlert = false
+  public var localData = LocalData.empty
   
   public init() { }
   
@@ -15,7 +16,7 @@ public struct SearchState: Equatable {
     public var terms: [String: [String]]
     public var facts: [String: Fact]
     
-    static var empty = LocalData(terms: [:], facts: [:])
+    public static var empty = LocalData(terms: [:], facts: [:])
   }
 }
 
@@ -99,7 +100,7 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
       return Effect(value: SearchAction.searchTerm(.pastSearch, term))
       
     case let .searchTerm(source, term):
-      if let list = state.localData.terms[term] {
+      if let list = state.localData.terms[term.lowercased()] {
         let facts = list.compactMap { state.localData.facts[$0] }
         return Effect(value: SearchAction.chuckNorrisFactsResponse(source, .success(facts)))
       }
@@ -167,7 +168,8 @@ public let searchReducer = Reducer<SearchState, SearchAction, SearchEnvironment>
       return .none
       
     case let .chuckNorrisCategoriesResponse(.success(categories)):
-      state.suggestions = categories.shuffled().suffix(8).sorted()
+      var generator = SeededGenerator(seed: UInt64(Date().timeIntervalSince1970))
+      state.suggestions = categories.shuffled(using: &generator).suffix(8).sorted()
       return environment.userDefaultsClient
         .save(categoriesListKeyname, categories)
         .fireAndForget()
