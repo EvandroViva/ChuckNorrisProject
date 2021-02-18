@@ -15,8 +15,6 @@ targets:
   ChuckNorrisFactsApp:
     type: application
     platform: iOS
-    info: 
-      path: ChuckNorrisFactsApp/Info.plist
     sources: [ChuckNorrisFactsApp]
     dependencies:
       - target: ChuckNorrisFactsCommon
@@ -25,8 +23,6 @@ targets:
   ChuckNorrisFactsCommon:
     type: framework
     platform: iOS
-    info: 
-      path: ChuckNorrisFactsCommon/Info.plist
     sources: [ChuckNorrisFactsCommon]
     scheme:
       buildImplicitDependencies: false
@@ -36,28 +32,51 @@ targets:
   FactsModule:
     type: framework
     platform: iOS
-    info: 
-      path: FactsModule/Info.plist
     sources: [FactsModule]
     dependencies:
       - target: SearchModule
       - target: ChuckNorrisFactsCommon
+  FactsModuleTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [FactsModuleTests]
+    dependencies:
+      - target: ChuckNorrisFactsCommon
+      - target: FactsModule
   SearchModule:
     type: framework
     platform: iOS
-    info: 
-      path: SearchModule/Info.plist
     sources: [SearchModule]
     dependencies:
       - target: ChuckNorrisFactsCommon
-    scheme:
-      testTargets:
-      - SearchModuleTests
   SearchModuleTests:
     type: bundle.unit-test
     platform: iOS
-    info: 
-      path: SearchModuleTests/Info.plist
     sources: [SearchModuleTests]
     dependencies:
       - target: ChuckNorrisFactsCommon
+      - target: SearchModule
+
+schemes:
+  ChuckNorrisFactsApp:
+    build:
+      targets:
+        ChuckNorrisFactsApp: all
+  FactsModule:
+    build:
+      targets:
+        FactsModule: all
+    test:
+      targets: [FactsModuleTests]
+      gatherCoverageData: true
+      coverageTargets: 
+        - FactsModule 
+  SearchModule:
+    build:
+      targets:
+        SearchModule: all
+    test:
+      targets: [SearchModuleTests]
+      gatherCoverageData: true
+      coverageTargets: 
+        - SearchModule 
